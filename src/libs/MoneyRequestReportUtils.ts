@@ -75,7 +75,15 @@ function getReportIDForTransaction(transactionItem: TransactionListItemType, IOU
  * Filters all available transactions and returns the ones that belong to not removed action and not removed parent action.
  */
 function getAllNonDeletedTransactions(transactions: OnyxCollection<Transaction>, reportActions: ReportAction[], isOffline = false, includeOrphanedTransactions = false) {
+    const originalTransactionIDsWithChildren = new Set<string>();
+    
     return Object.values(transactions ?? {}).filter((transaction): transaction is Transaction => {
+        if (transaction?.comment?.originalTransactionID && transaction?.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE) {
+            if (originalTransactionIDsWithChildren.has(transaction.comment?.originalTransactionID)) {
+                return false;
+            }
+            originalTransactionIDsWithChildren.add(transaction.comment?.originalTransactionID);
+        }
         if (!transaction) {
             return false;
         }
