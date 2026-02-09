@@ -24,6 +24,8 @@ function BaseSearchList({
     scrollToIndex,
     onEndReached,
     onEndReachedThreshold,
+    ListHeaderComponent,
+    stickyHeaderIndices,
     ListFooterComponent,
     onViewableItemsChanged,
     onLayout,
@@ -120,6 +122,8 @@ function BaseSearchList({
             extraData={extraData}
             onEndReached={onEndReached}
             onEndReachedThreshold={onEndReachedThreshold}
+            ListHeaderComponent={ListHeaderComponent}
+            stickyHeaderIndices={stickyHeaderIndices}
             ListFooterComponent={ListFooterComponent}
             onViewableItemsChanged={onViewableItemsChanged}
             onLayout={onLayout}

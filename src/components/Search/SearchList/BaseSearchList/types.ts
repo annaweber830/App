@@ -12,6 +12,8 @@ type BaseSearchListProps = Pick<
     | 'onEndReached'
     | 'onEndReachedThreshold'
     | 'ListFooterComponent'
+    | 'ListHeaderComponent'
+    | 'stickyHeaderIndices'
     | 'onViewableItemsChanged'
     | 'keyExtractor'
     | 'showsVerticalScrollIndicator'
