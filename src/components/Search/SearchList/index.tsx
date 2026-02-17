@@ -533,39 +533,40 @@ function SearchList({
     const selectAllButtonVisible = canSelectMultiple && !SearchTableHeader;
     const isSelectAllChecked = selectedItemsLength > 0 && selectedItemsLength === totalItems && hasLoadedAllTransactions;
 
+    const listHeaderComponent = tableHeaderVisible ? (
+        <View style={[styles.searchListHeaderContainerStyle, styles.listTableHeader, styles.selectionListStickyHeader]}>
+            {canSelectMultiple && (
+                <Checkbox
+                    accessibilityLabel={translate('workspace.people.selectAll')}
+                    isChecked={isSelectAllChecked}
+                    isIndeterminate={selectedItemsLength > 0 && (selectedItemsLength !== totalItems || !hasLoadedAllTransactions)}
+                    onPress={() => {
+                        onAllCheckboxPress();
+                    }}
+                    disabled={totalItems === 0}
+                />
+            )}
+
+            {SearchTableHeader}
+
+            {selectAllButtonVisible && (
+                <PressableWithFeedback
+                    style={[styles.userSelectNone, styles.alignItemsCenter]}
+                    onPress={onAllCheckboxPress}
+                    accessibilityLabel={translate('workspace.people.selectAll')}
+                    role="button"
+                    accessibilityState={{checked: isSelectAllChecked}}
+                    sentryLabel={CONST.SENTRY_LABEL.SEARCH.SELECT_ALL_BUTTON}
+                    dataSet={{[CONST.SELECTION_SCRAPER_HIDDEN_ELEMENT]: true}}
+                >
+                    <Text style={[styles.textMicroSupporting, styles.ph3]}>{translate('workspace.people.selectAll')}</Text>
+                </PressableWithFeedback>
+            )}
+        </View>
+    ) : undefined;
+
     const content = (
         <View style={[styles.flex1, !isKeyboardShown && safeAreaPaddingBottomStyle, containerStyle]}>
-            {tableHeaderVisible && (
-                <View style={[styles.searchListHeaderContainerStyle, styles.listTableHeader]}>
-                    {canSelectMultiple && (
-                        <Checkbox
-                            accessibilityLabel={translate('workspace.people.selectAll')}
-                            isChecked={isSelectAllChecked}
-                            isIndeterminate={selectedItemsLength > 0 && (selectedItemsLength !== totalItems || !hasLoadedAllTransactions)}
-                            onPress={() => {
-                                onAllCheckboxPress();
-                            }}
-                            disabled={totalItems === 0}
-                        />
-                    )}
-
-                    {SearchTableHeader}
-
-                    {selectAllButtonVisible && (
-                        <PressableWithFeedback
-                            style={[styles.userSelectNone, styles.alignItemsCenter]}
-                            onPress={onAllCheckboxPress}
-                            accessibilityLabel={translate('workspace.people.selectAll')}
-                            role="button"
-                            accessibilityState={{checked: isSelectAllChecked}}
-                            sentryLabel={CONST.SENTRY_LABEL.SEARCH.SELECT_ALL_BUTTON}
-                            dataSet={{[CONST.SELECTION_SCRAPER_HIDDEN_ELEMENT]: true}}
-                        >
-                            <Text style={[styles.textMicroSupporting, styles.ph3]}>{translate('workspace.people.selectAll')}</Text>
-                        </PressableWithFeedback>
-                    )}
-                </View>
-            )}
             <BaseSearchList
                 data={data}
                 renderItem={renderItem}
@@ -579,6 +580,8 @@ function SearchList({
                 flattenedItemsLength={flattenedItems.length}
                 onEndReached={onEndReached}
                 onEndReachedThreshold={onEndReachedThreshold}
+                ListHeaderComponent={listHeaderComponent}
+                stickyHeaderIndices={listHeaderComponent ? [0] : undefined}
                 ListFooterComponent={ListFooterComponent}
                 onViewableItemsChanged={onViewableItemsChanged}
                 onLayout={onLayout}

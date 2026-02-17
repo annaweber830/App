@@ -1,5 +1,5 @@
-import React from 'react';
-import type {StyleProp, ViewStyle} from 'react-native';
+import React, {useCallback, useState} from 'react';
+import type {LayoutChangeEvent, StyleProp, ViewStyle} from 'react-native';
 import {View} from 'react-native';
 import {Circle, Rect} from 'react-native-svg';
 import useResponsiveLayout from '@hooks/useResponsiveLayout';
@@ -37,7 +37,13 @@ function SearchRowSkeleton({shouldAnimate = true, fixedNumItems, gradientOpacity
     const styles = useThemeStyles();
     const {windowWidth} = useWindowDimensions();
     const {shouldUseNarrowLayout, isLargeScreenWidth} = useResponsiveLayout();
+    const [containerWidth, setContainerWidth] = useState(windowWidth);
     useSkeletonSpan('SearchRowSkeleton');
+
+    const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
+        const {width} = event.nativeEvent.layout;
+        setContainerWidth((currentWidth) => (currentWidth === width ? currentWidth : width));
+    }, []);
 
     if (shouldUseNarrowLayout) {
         return (
@@ -115,7 +121,10 @@ function SearchRowSkeleton({shouldAnimate = true, fixedNumItems, gradientOpacity
     }
 
     return (
-        <View style={[styles.flex1, containerStyle]}>
+        <View
+            style={[styles.flex1, containerStyle]}
+            onLayout={handleContainerLayout}
+        >
             <ItemListSkeletonView
                 shouldAnimate={shouldAnimate}
                 fixedNumItems={fixedNumItems}
@@ -158,14 +167,14 @@ function SearchRowSkeleton({shouldAnimate = true, fixedNumItems, gradientOpacity
 
                         <Rect
                             // We have to calculate this value to make sure the element is aligned to the button on the right side.
-                            transform={[{translateX: windowWidth - leftPaneWidth - rightButtonWidth - gapWidth - centralPanePadding - gapWidth - rightSideElementWidth}, {translateY: 28}]}
+                            transform={[{translateX: containerWidth - rightButtonWidth - gapWidth - centralPanePadding - gapWidth - rightSideElementWidth}, {translateY: 28}]}
                             width={80}
                             height={barHeight}
                         />
 
                         <Rect
                             // We have to calculate this value to make sure the element is aligned to the right border.
-                            transform={[{translateX: windowWidth - leftPaneWidth - rightSideElementWidth - gapWidth - centralPanePadding}, {translateY: 18}]}
+                            transform={[{translateX: containerWidth - rightSideElementWidth - gapWidth - centralPanePadding}, {translateY: 18}]}
                             rx={15}
                             ry={15}
                             width={80}
