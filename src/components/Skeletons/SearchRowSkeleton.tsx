@@ -7,7 +7,6 @@ import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import useSkeletonSpan from '@libs/telemetry/useSkeletonSpan';
-import variables from '@styles/variables';
 import CONST from '@src/CONST';
 import ItemListSkeletonView from './ItemListSkeletonView';
 
@@ -21,7 +20,6 @@ type SearchRowSkeletonProps = {
 
 const barHeight = 8;
 const longBarWidth = 120;
-const leftPaneWidth = variables.sideBarWithLHBWidth + variables.navigationTabBarSize;
 
 // 12 is the gap between the element and the right button
 const gapWidth = 12;
@@ -39,6 +37,7 @@ function SearchRowSkeleton({shouldAnimate = true, fixedNumItems, gradientOpacity
     const styles = useThemeStyles();
     const {windowWidth} = useWindowDimensions();
     const {shouldUseNarrowLayout, isLargeScreenWidth} = useResponsiveLayout();
+    const [containerWidth, setContainerWidth] = useState(windowWidth);
     useSkeletonSpan('SearchRowSkeleton', reasonAttributes);
 
     const handleContainerLayout = useCallback((event: LayoutChangeEvent) => {
