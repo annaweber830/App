@@ -567,6 +567,38 @@ function SearchList({
 
     const content = (
         <View style={[styles.flex1, !isKeyboardShown && safeAreaPaddingBottomStyle, containerStyle]}>
+            {tableHeaderVisible && (
+                <View style={[styles.searchListHeaderContainerStyle, styles.listTableHeader]}>
+                    {canSelectMultiple && (
+                        <Checkbox
+                            accessibilityLabel={translate('workspace.people.selectAll')}
+                            isChecked={isSelectAllChecked}
+                            isIndeterminate={selectedItemsLength > 0 && (selectedItemsLength !== totalItems || !hasLoadedAllTransactions)}
+                            onPress={() => {
+                                onAllCheckboxPress();
+                            }}
+                            disabled={totalItems === 0}
+                            sentryLabel={CONST.SENTRY_LABEL.SEARCH.SELECT_ALL_CHECKBOX}
+                        />
+                    )}
+
+                    {SearchTableHeader}
+
+                    {selectAllButtonVisible && (
+                        <PressableWithFeedback
+                            style={[styles.userSelectNone, styles.alignItemsCenter]}
+                            onPress={onAllCheckboxPress}
+                            accessibilityLabel={translate('workspace.people.selectAll')}
+                            role="button"
+                            accessibilityState={{checked: isSelectAllChecked}}
+                            sentryLabel={CONST.SENTRY_LABEL.SEARCH.SELECT_ALL_BUTTON}
+                            dataSet={{[CONST.SELECTION_SCRAPER_HIDDEN_ELEMENT]: true}}
+                        >
+                            <Text style={[styles.textMicroSupporting, styles.ph3]}>{translate('workspace.people.selectAll')}</Text>
+                        </PressableWithFeedback>
+                    )}
+                </View>
+            )}
             <BaseSearchList
                 data={data}
                 renderItem={renderItem}
@@ -600,6 +632,7 @@ function SearchList({
                     title={translate('common.select')}
                     icon={expensifyIcons.CheckSquare}
                     onPress={turnOnSelectionMode}
+                    sentryLabel={CONST.SENTRY_LABEL.SEARCH.SELECTION_MODE_MENU_ITEM}
                 />
             </Modal>
         </View>
