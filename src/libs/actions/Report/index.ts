@@ -2572,6 +2572,14 @@ function explain(
     // Check if explanation thread report already exists
     const report = childReport ?? createChildReport(childReport, reportAction, originalReport, currentUserAccountID, introSelected, betas, isSelfTourViewed, participantsPersonalDetails);
 
+    // When the explanation thread already exists (e.g. the backend pre-creates the reasoning thread for a
+    // RECEIPT_SCAN_FAILED action), the `childReport ??` short-circuit above skips createChildReport, which is the
+    // only place explain() would otherwise dispatch OpenReport. Its report actions are therefore not cached, so the
+    // destination renders a prolonged skeleton. Fetch them explicitly here so the thread loads immediately.
+    if (childReport?.reportID) {
+        openReport({reportID: childReport.reportID, introSelected, betas});
+    }
+
     if (isSearchTopmostFullScreenRoute()) {
         Navigation.navigate(ROUTES.SEARCH_REPORT.getRoute({reportID: report.reportID, backTo: Navigation.getActiveRoute()}));
     } else {
