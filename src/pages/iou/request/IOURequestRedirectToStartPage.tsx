@@ -30,11 +30,23 @@ function IOURequestRedirectToStartPage({route}: IOURequestRedirectToStartPagePro
         // Redirect the person to the right start page using a random reportID
         const optimisticReportID = generateReportID();
         if (iouRequestType === CONST.IOU.REQUEST_TYPE.DISTANCE) {
-            Navigation.navigate(ROUTES.MONEY_REQUEST_CREATE_TAB_DISTANCE.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
+            // The legacy tabbed Distance route only mounts a Distance tab for split flows; for every other
+            // iouType that tab no longer exists, so the tab navigator falls back to Manual. Non-split
+            // distance now lives in the standalone DISTANCE_REQUEST_CREATE flow (see startDistanceRequest).
+            const distanceRoute =
+                iouType === CONST.IOU.TYPE.SPLIT
+                    ? ROUTES.MONEY_REQUEST_CREATE_TAB_DISTANCE.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID)
+                    : ROUTES.DISTANCE_REQUEST_CREATE.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID);
+            Navigation.navigate(distanceRoute);
         } else if (iouRequestType === CONST.IOU.REQUEST_TYPE.MANUAL) {
             Navigation.navigate(ROUTES.MONEY_REQUEST_CREATE_TAB_MANUAL.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
         } else if (iouRequestType === CONST.IOU.REQUEST_TYPE.SCAN) {
             Navigation.navigate(ROUTES.MONEY_REQUEST_CREATE_TAB_SCAN.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
+        } else if (iouRequestType === CONST.IOU.REQUEST_TYPE.PER_DIEM) {
+            // Per-diem is a valid request type but was missing from this chain, so the deep link
+            // `start/:iouType/per-diem` dismissed the modal and then matched no branch — opening nothing.
+            // The per-diem tab still lives in the tabbed start page, so route it there.
+            Navigation.navigate(ROUTES.MONEY_REQUEST_CREATE_TAB_PER_DIEM.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
         } else if (iouRequestType === CONST.IOU.REQUEST_TYPE.DISTANCE_MAP) {
             Navigation.navigate(ROUTES.DISTANCE_REQUEST_CREATE_TAB_MAP.getRoute(CONST.IOU.ACTION.CREATE, iouType, CONST.IOU.OPTIMISTIC_TRANSACTION_ID, optimisticReportID));
         } else if (iouRequestType === CONST.IOU.REQUEST_TYPE.DISTANCE_MANUAL) {
