@@ -1,5 +1,5 @@
 import React, {useEffect, useMemo, useState} from 'react';
-import {View} from 'react-native';
+import {Keyboard, View} from 'react-native';
 import FocusTrapContainerElement from '@components/FocusTrap/FocusTrapContainerElement';
 import HeaderWithBackButton from '@components/HeaderWithBackButton';
 import ScreenWrapper from '@components/ScreenWrapper';
@@ -123,7 +123,16 @@ function DistanceRequestStartPage({
                     <OnyxTabNavigator
                         id={CONST.TAB.DISTANCE_REQUEST_TYPE}
                         defaultSelectedTab={defaultSelectedTab}
-                        onTabSelected={resetIOUTypeIfChanged}
+                        onTabSelected={(newTab) => {
+                            // Leaving the Odometer tab: dismiss the keyboard now (synchronously, before the
+                            // lazily-mounted Map tab measures) so the shared KeyboardAvoidingView isn't still
+                            // padding the container — otherwise the map fits into the keyboard-shrunk area and
+                            // stays cropped (the KAV gate reads the async Onyx `selectedTab`, which lags). #95376
+                            if (newTab !== CONST.TAB_REQUEST.DISTANCE_ODOMETER) {
+                                Keyboard.dismiss();
+                            }
+                            resetIOUTypeIfChanged(newTab);
+                        }}
                         tabBar={TabSelector}
                         onTabBarFocusTrapContainerElementChanged={setTabBarContainerElement}
                         onActiveTabFocusTrapContainerElementChanged={setActiveTabContainerElement}
