@@ -4792,6 +4792,9 @@ function createBaseSavedSearchMenuItem(item: SaveSearchItem, key: string, index:
         pendingAction: item.pendingAction,
         disabled: item.pendingAction === CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE,
         shouldIconUseAutoWidthStyle: true,
+        // Each row opens a portalled 3-dot popover; track hover natively so the synthetic mouseenter/leave
+        // delivered around that popover can't strand a stale highlight on the row after it closes.
+        shouldUseNativeHoverEvents: true,
     };
 }
 
