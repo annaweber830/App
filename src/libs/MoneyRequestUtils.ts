@@ -1,4 +1,5 @@
 import CONST from '@src/CONST';
+import type {TranslationPaths} from '@src/languages/types';
 import type {Report, Transaction} from '@src/types/onyx';
 
 import type {OnyxEntry} from 'react-native-onyx';
@@ -217,6 +218,37 @@ function shouldShowConfirmationDate(shouldShowSmartScanFields: boolean, isDistan
     return shouldShowSmartScanFields || isDistanceRequest;
 }
 
+/**
+ * Validates the split-share amounts on a split transaction and returns the first failing translation key,
+ * or undefined when the shares are valid (or there are no shares to validate). This is the single source of
+ * truth for the split invariant, shared by the live inline validator (SplitBillController) and the submit-time
+ * validator (useConfirmationValidation) so the two can never diverge.
+ */
+function validateSplitShares(transaction: OnyxEntry<Transaction>, iouAmount: number, currentUserAccountID: number): TranslationPaths | undefined {
+    const splitShares = transaction?.splitShares;
+    if (!splitShares) {
+        return undefined;
+    }
+
+    const sumOfShares = Object.values(splitShares).reduce((sum, splitShare) => sum + (splitShare?.amount ?? 0), 0);
+    if (sumOfShares !== iouAmount) {
+        return 'iou.error.invalidSplit';
+    }
+
+    // A split must have at least two participants with amounts bigger than 0
+    const participantsWithAmount = Object.values(splitShares).filter((splitShare) => (splitShare?.amount ?? 0) > 0);
+    if (participantsWithAmount.length === 1) {
+        return 'iou.error.invalidSplitParticipants';
+    }
+
+    // Amounts should be bigger than 0 for the split bill creator (yourself)
+    if (splitShares[currentUserAccountID] && (splitShares[currentUserAccountID]?.amount ?? 0) === 0) {
+        return 'iou.error.invalidSplitYourself';
+    }
+
+    return undefined;
+}
+
 export {
     addLeadingZero,
     shouldShowConfirmationDate,
@@ -231,4 +263,5 @@ export {
     isValidMoneyRequestAmount,
     isTaxAmountInvalid,
     isValidMerchant,
+    validateSplitShares,
 };

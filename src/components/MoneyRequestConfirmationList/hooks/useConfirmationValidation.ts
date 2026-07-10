@@ -3,7 +3,7 @@ import {useCurrencyListActions} from '@hooks/useCurrencyList';
 import {isValidPerDiemExpenseAmount} from '@libs/actions/IOU/PerDiem';
 import {getIsMissingAttendeesViolation} from '@libs/AttendeeUtils';
 import {convertToFrontendAmountAsString} from '@libs/CurrencyUtils';
-import {isTaxAmountInvalid, isValidMoneyRequestAmount, validateAmount} from '@libs/MoneyRequestUtils';
+import {isTaxAmountInvalid, isValidMoneyRequestAmount, validateAmount, validateSplitShares} from '@libs/MoneyRequestUtils';
 import type {getTagLists as getTagListsFn} from '@libs/PolicyUtils';
 import {isAttendeeTrackingEnabled} from '@libs/PolicyUtils';
 import {hasEnabledTags, hasMatchingTag} from '@libs/TagsOptionsListUtils';
@@ -175,6 +175,15 @@ function useConfirmationValidation({
 
         if (selectedParticipantsCount === 0) {
             return {errorKey: 'iou.error.noParticipantSelected'};
+        }
+
+        // Recompute the split-share invariant at submit time so an invalid split can never be confirmed,
+        // even after the transient formError was cleared (e.g. when saving the merchant re-fires the reset effect).
+        if (iouType === CONST.IOU.TYPE.SPLIT && transaction?.splitShares) {
+            const splitSharesError = validateSplitShares(transaction, iouAmount, currentUserPersonalDetails.accountID);
+            if (splitSharesError) {
+                return {errorKey: splitSharesError};
+            }
         }
 
         const firstParticipant = transaction?.participants?.at(0);

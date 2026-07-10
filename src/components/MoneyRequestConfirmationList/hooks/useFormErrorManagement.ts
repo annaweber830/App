@@ -17,6 +17,12 @@ import type {OnyxEntry} from 'react-native-onyx';
 import {useIsFocused} from '@react-navigation/native';
 import {useEffect, useRef} from 'react';
 
+// Split-share errors are live-owned by SplitBillController and represent a real, unresolved invariant
+// (shares must sum to the total). Like `violations.` errors, they must survive the focus/validation reset
+// below so that editing an unrelated field (e.g. saving the merchant) can't wipe them while the split is
+// still invalid. SplitBillController clears them itself the moment the shares balance.
+const SPLIT_ERROR_KEYS = new Set<TranslationPaths>(['iou.error.invalidSplit', 'iou.error.invalidSplitParticipants', 'iou.error.invalidSplitYourself']);
+
 type UseFormErrorManagementParams = {
     /** Transaction being confirmed */
     transaction: OnyxEntry<OnyxTypes.Transaction>;
@@ -219,8 +225,9 @@ function useFormErrorManagement({
         // Check 1: If formError does NOT start with "violations.", clear it and return
         // Reset the form error whenever the screen gains or loses focus
         // but preserve violation-related errors since those represent real validation issues
-        // that can only be resolved by fixing the underlying issue
-        if (currentFormError && !currentFormError.startsWith(CONST.VIOLATIONS_PREFIX)) {
+        // that can only be resolved by fixing the underlying issue.
+        // Split-share errors are preserved for the same reason (see SPLIT_ERROR_KEYS above).
+        if (currentFormError && !currentFormError.startsWith(CONST.VIOLATIONS_PREFIX) && !SPLIT_ERROR_KEYS.has(currentFormError)) {
             setFormError('');
             return;
         }
