@@ -19,6 +19,17 @@ import type {OptimisticTrackingState, TrackingMutableState} from './useStableOpt
 
 import {OPTIMISTIC_TRACKING_TIMEOUT_MS, resolveWatchKey} from './useStableOptimisticSortedData';
 
+type ReportKey = `${typeof ONYXKEYS.COLLECTION.REPORT}${string}`;
+type TransactionKey = `${typeof ONYXKEYS.COLLECTION.TRANSACTION}${string}`;
+
+function isReportEntryKey(key: string): key is ReportKey {
+    return key.startsWith(ONYXKEYS.COLLECTION.REPORT);
+}
+
+function isTransactionEntryKey(key: string): key is TransactionKey {
+    return key.startsWith(ONYXKEYS.COLLECTION.TRANSACTION);
+}
+
 type UseOptimisticSearchTrackingParams = {
     /** Current search results snapshot from Onyx. */
     searchResults: SearchResults | undefined;
@@ -142,25 +153,78 @@ function useOptimisticSearchTracking({searchResults, queryJSON, transactions, re
         return () => cancelAnimationFrame(rafID);
     }, [isOptimisticTrackingCleared, optimisticWatchKey, transactions]);
 
-    // Augment search data with the optimistic transaction (before it appears in server snapshot).
+    // Augment search data with optimistic transactions (before they appear in server snapshots).
     const searchDataWithOptimisticTransaction = (() => {
         const searchData = searchResults?.data;
-        if (!searchData || !isTransactionSearchType(type) || !optimisticWatchKey || isOptimisticTrackingCleared) {
+        if (!searchData) {
             return searchData;
+        }
+
+        let nextSearchData = searchData;
+
+        if (type === CONST.SEARCH.DATA_TYPES.EXPENSE_REPORT && transactions) {
+            const reportIDsInSnapshot = new Set<string>();
+            for (const reportKey of Object.keys(searchData)) {
+                if (!isReportEntryKey(reportKey)) {
+                    continue;
+                }
+                const report = searchData[reportKey];
+                if (report?.reportID) {
+                    reportIDsInSnapshot.add(report.reportID);
+                }
+            }
+
+            let optimisticReportTransactions: Partial<SearchResults['data']> | undefined;
+            for (const transactionKey of Object.keys(transactions)) {
+                if (!isTransactionEntryKey(transactionKey)) {
+                    continue;
+                }
+                const transaction = transactions[transactionKey];
+                if (
+                    !transaction?.transactionID ||
+                    nextSearchData[transactionKey] ||
+                    transaction.reportID === CONST.REPORT.SPLIT_REPORT_ID ||
+                    !transaction.reportID ||
+                    !reportIDsInSnapshot.has(transaction.reportID)
+                ) {
+                    continue;
+                }
+
+                optimisticReportTransactions = {
+                    ...optimisticReportTransactions,
+                    [transactionKey]: transaction,
+                };
+            }
+
+            if (optimisticReportTransactions) {
+                nextSearchData = {
+                    ...nextSearchData,
+                    ...optimisticReportTransactions,
+                };
+            }
+        }
+
+        if (!isTransactionSearchType(type) || !optimisticWatchKey || isOptimisticTrackingCleared) {
+            return nextSearchData;
         }
 
         const optimisticTransactionKey = optimisticWatchKey.startsWith(ONYXKEYS.COLLECTION.TRANSACTION)
             ? (optimisticWatchKey as `${typeof ONYXKEYS.COLLECTION.TRANSACTION}${string}`)
             : undefined;
         const optimisticTransaction = optimisticTransactionKey ? transactions?.[optimisticTransactionKey] : undefined;
-        if (!optimisticTransactionKey || !optimisticTransaction?.transactionID || searchData[optimisticTransactionKey] || optimisticTransaction.reportID === CONST.REPORT.SPLIT_REPORT_ID) {
-            return searchData;
+        if (
+            !optimisticTransactionKey ||
+            !optimisticTransaction?.transactionID ||
+            nextSearchData[optimisticTransactionKey] ||
+            optimisticTransaction.reportID === CONST.REPORT.SPLIT_REPORT_ID
+        ) {
+            return nextSearchData;
         }
 
-        const nextSearchData = {
-            ...searchData,
+        nextSearchData = {
+            ...nextSearchData,
             [optimisticTransactionKey]: optimisticTransaction,
-        } as SearchResults['data'];
+        };
 
         for (const [reportActionsKey, actions] of Object.entries(reportActions ?? {})) {
             if (!actions) {
