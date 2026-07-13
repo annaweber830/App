@@ -88,6 +88,7 @@ function BaseVideoPlayer(props: BaseVideoPlayerProps) {
     }));
     const [isSeeking, setIsSeeking] = useState(false);
     const allowSharedAutoPlayRef = useRef(true);
+    const wasSourceClearedWhileOfflineRef = useRef(false);
 
     /* eslint-disable no-param-reassign */
     // According to the library docs, the player is configured by mutating the provided instance
@@ -118,13 +119,7 @@ function BaseVideoPlayer(props: BaseVideoPlayerProps) {
 
     useNetwork({
         onReconnect: () => {
-            // Restore the source on reconnect in two cases:
-            // 1. The initial-load-failed case (currentTime <= 0 && hasError) that this guard already covered.
-            // 2. The mid-playback case: if we were offline past OFFLINE_THRESHOLD, the effect below wiped the
-            //    source (replaceAsync('')). After that wipe the player sits at status 'loading' (not 'error')
-            //    with currentTime > 0, so the original guard missed it and the video stayed blank forever.
-            //    isVideoOffline is still true here (it resets in a later effect), so it flags that wiped state.
-            if (!isVideoOffline && !(currentTime <= 0 && hasError)) {
+            if (!wasSourceClearedWhileOfflineRef.current && !(currentTime <= 0 && hasError)) {
                 return;
             }
             videoPlayerRef.current.replaceAsync(sourceURL);
@@ -148,6 +143,7 @@ function BaseVideoPlayer(props: BaseVideoPlayerProps) {
         if (!(isVideoOffline && isLoading && isOffline)) {
             return;
         }
+        wasSourceClearedWhileOfflineRef.current = true;
         videoPlayerRef.current.replaceAsync('');
     }, [isLoading, isVideoOffline, isOffline]);
 
@@ -312,6 +308,10 @@ function BaseVideoPlayer(props: BaseVideoPlayerProps) {
         }
         isReadyForDisplayRef.current = true;
         setHasErrorIconVisible(false);
+        if (wasSourceClearedWhileOfflineRef.current) {
+            videoPlayerRef.current.currentTime = savedCurrentTimeRef.current;
+            wasSourceClearedWhileOfflineRef.current = false;
+        }
         if (isFirstLoad) {
             setIsFirstLoad(false);
             if (videoPlayerRef.current === currentVideoPlayerRef.current && !isUploading && !isOffline) {
