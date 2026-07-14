@@ -91,4 +91,41 @@ describe('getAnchoredPreviewPosition', () => {
 
         expect(getAnchoredPreviewPosition(anchor, WINDOW_WIDTH, WINDOW_HEIGHT, previewHeight)?.top).toBe(RECEIPT_PREVIEW_EDGE_MARGIN);
     });
+
+    describe('when the left side is preferred (Search with the sidebar expanded)', () => {
+        // The thumbnail sits past the 72px navigation rail and the 320px expanded sidebar, plus the row's own padding.
+        const EXPANDED_SIDEBAR_ANCHOR = {top: 300, left: 456, width: 28, height: 32};
+        // With the sidebar collapsed (76px) the same thumbnail sits far too close to the edge for the preview to fit.
+        const COLLAPSED_SIDEBAR_ANCHOR = {top: 300, left: 212, width: 28, height: 32};
+
+        it('opens to the left of the thumbnail when there is room for it', () => {
+            const left = getAnchoredPreviewPosition(EXPANDED_SIDEBAR_ANCHOR, WINDOW_WIDTH, WINDOW_HEIGHT, 400, true)?.left;
+
+            expect(left).toBe(EXPANDED_SIDEBAR_ANCHOR.left - RECEIPT_PREVIEW_WIDTH - RECEIPT_PREVIEW_GAP);
+            expect(left).toBeGreaterThanOrEqual(RECEIPT_PREVIEW_EDGE_MARGIN);
+        });
+
+        it('stays on the right when the thumbnail is too close to the left edge for the preview to fit', () => {
+            const left = getAnchoredPreviewPosition(COLLAPSED_SIDEBAR_ANCHOR, WINDOW_WIDTH, WINDOW_HEIGHT, 400, true)?.left;
+
+            expect(left).toBe(COLLAPSED_SIDEBAR_ANCHOR.left + COLLAPSED_SIDEBAR_ANCHOR.width + RECEIPT_PREVIEW_GAP);
+        });
+
+        it('keeps opening to the right when the left side is not preferred, even with room on the left', () => {
+            const left = getAnchoredPreviewPosition(EXPANDED_SIDEBAR_ANCHOR, WINDOW_WIDTH, WINDOW_HEIGHT, 400)?.left;
+
+            expect(left).toBe(EXPANDED_SIDEBAR_ANCHOR.left + EXPANDED_SIDEBAR_ANCHOR.width + RECEIPT_PREVIEW_GAP);
+        });
+
+        it('still flips left on right-edge overflow when neither side fits, instead of overflowing the viewport', () => {
+            // A narrow viewport where the preview fits on neither side: the left placement is clamped to the margin
+            // rather than the position overflowing off the right edge.
+            const narrowWidth = 600;
+            const anchor = {top: 300, left: 300, width: 28, height: 32};
+
+            const left = getAnchoredPreviewPosition(anchor, narrowWidth, WINDOW_HEIGHT, 400)?.left;
+
+            expect(left).toBe(RECEIPT_PREVIEW_EDGE_MARGIN);
+        });
+    });
 });

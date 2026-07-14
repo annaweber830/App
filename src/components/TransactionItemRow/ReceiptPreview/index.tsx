@@ -2,13 +2,16 @@ import ActivityIndicator from '@components/ActivityIndicator';
 import DistanceEReceipt from '@components/DistanceEReceipt';
 import EReceiptWithSizeCalculation from '@components/EReceiptWithSizeCalculation';
 import type {ImageOnLoadEvent} from '@components/Image/types';
+import {useSearchSidebarCollapse} from '@components/Navigation/SearchSidebarCollapseStore';
 import type {AnchorPosition} from '@components/TransactionItemRow/types';
 
 import useDebouncedState from '@hooks/useDebouncedState';
 import useResponsiveLayoutOnWideRHP from '@hooks/useResponsiveLayoutOnWideRHP';
+import useRootNavigationState from '@hooks/useRootNavigationState';
 import useThemeStyles from '@hooks/useThemeStyles';
 import useWindowDimensions from '@hooks/useWindowDimensions';
 
+import getTopmostFullScreenRoute from '@libs/Navigation/helpers/getTopmostFullScreenRoute';
 import type {SkeletonSpanReasonAttributes} from '@libs/telemetry/useSkeletonSpan';
 import {hasReceiptSource, isDistanceRequest, isManualDistanceRequest, isPerDiemRequest} from '@libs/TransactionUtils';
 
@@ -16,6 +19,7 @@ import variables from '@styles/variables';
 
 import Image from '@src/components/Image';
 import CONST from '@src/CONST';
+import NAVIGATORS from '@src/NAVIGATORS';
 import type {Transaction} from '@src/types/onyx';
 import type {ReceiptSource} from '@src/types/onyx/Transaction';
 
@@ -56,6 +60,12 @@ function ReceiptPreview({source, hovered, isEReceipt = false, transactionItem, a
     const {shouldUseNarrowLayout} = useResponsiveLayoutOnWideRHP();
     const hasMeasured = useRef(false);
     const {windowWidth, windowHeight} = useWindowDimensions();
+    const {isVisuallyCollapsed} = useSearchSidebarCollapse();
+    // The sidebar NVP is global, but the sidebar itself only exists on the Search tab, so the route has to gate it.
+    // Without this, Home would read "expanded" (the NVP defaults to not-collapsed) and open its previews on the left.
+    const isOnSearchTab = useRootNavigationState(() => getTopmostFullScreenRoute()?.name === NAVIGATORS.SEARCH_FULLSCREEN_NAVIGATOR);
+    // Prefer the left only when the expanded sidebar is what's creating the free space there.
+    const shouldPreferLeft = isOnSearchTab && !isVisuallyCollapsed;
     const [isLoading, setIsLoading] = useState(true);
     // Measured preview height, used to clamp the vertical position so a tall receipt never runs off the bottom edge.
     const [previewHeight, setPreviewHeight] = useState(0);
@@ -124,7 +134,7 @@ function ReceiptPreview({source, hovered, isEReceipt = false, transactionItem, a
     const shouldShowDistanceEReceipt = isDistanceEReceipt && !isEReceipt && !isPerDiemEReceipt;
     const sourceObject = typeof source === 'string' ? {uri: source} : source;
 
-    const anchoredPositionStyle = getAnchoredPreviewPosition(anchorPosition, windowWidth, windowHeight, previewHeight);
+    const anchoredPositionStyle = getAnchoredPreviewPosition(anchorPosition, windowWidth, windowHeight, previewHeight, shouldPreferLeft);
 
     return ReactDOM.createPortal(
         <Animated.View

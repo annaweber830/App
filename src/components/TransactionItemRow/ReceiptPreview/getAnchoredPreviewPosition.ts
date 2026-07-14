@@ -22,15 +22,25 @@ const RECEIPT_PREVIEW_MIN_VISIBLE_HEIGHT = 160;
  *
  * @param previewHeight Measured height of the preview. 0 means "not measured yet" — we can't bottom-align without
  * it, so we fall back to aligning the top with the row (keeping a minimum slice on-screen) for the first frame.
+ * @param shouldPreferLeft Open on the left of the thumbnail when there is room, instead of only doing so when the
+ * right side overflows. Set when the expanded Search sidebar leaves free space the preview should use, so it doesn't
+ * cover the row's own data.
  */
-function getAnchoredPreviewPosition(anchorPosition: AnchorPosition | undefined, windowWidth: number, windowHeight: number, previewHeight = 0) {
+function getAnchoredPreviewPosition(anchorPosition: AnchorPosition | undefined, windowWidth: number, windowHeight: number, previewHeight = 0, shouldPreferLeft = false) {
     if (!anchorPosition) {
         return undefined;
     }
 
     const rightOfThumbnail = anchorPosition.left + anchorPosition.width + RECEIPT_PREVIEW_GAP;
+    const leftOfThumbnail = anchorPosition.left - RECEIPT_PREVIEW_WIDTH - RECEIPT_PREVIEW_GAP;
     const overflowsRight = windowWidth > 0 && rightOfThumbnail + RECEIPT_PREVIEW_WIDTH + RECEIPT_PREVIEW_EDGE_MARGIN > windowWidth;
-    const left = overflowsRight ? Math.max(RECEIPT_PREVIEW_EDGE_MARGIN, anchorPosition.left - RECEIPT_PREVIEW_WIDTH - RECEIPT_PREVIEW_GAP) : rightOfThumbnail;
+    const fitsLeft = leftOfThumbnail >= RECEIPT_PREVIEW_EDGE_MARGIN;
+
+    // The left side is used when it is preferred and there is room for it, and otherwise stays the fallback for a
+    // preview that would overflow the right edge. That fallback deliberately doesn't require `fitsLeft`: when neither
+    // side fits, the clamp below keeps today's behavior of pinning the preview to the left margin.
+    const shouldPlaceLeft = (shouldPreferLeft && fitsLeft) || overflowsRight;
+    const left = shouldPlaceLeft ? Math.max(RECEIPT_PREVIEW_EDGE_MARGIN, leftOfThumbnail) : rightOfThumbnail;
 
     // Before it's measured we can't bottom-align, so keep a minimum slice on-screen relative to the row top.
     if (previewHeight <= 0) {
