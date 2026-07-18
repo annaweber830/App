@@ -883,10 +883,14 @@ function openBulkChangeApproverPage(reportIDList: OpenBulkChangeApproverPagePara
     write(WRITE_COMMANDS.OPEN_BULK_CHANGE_APPROVER_PAGE, {reportIDList}, {optimisticData, successData});
 }
 
-// Tracks in-flight search requests by hash+offset to prevent duplicate API calls
-// when both page-level (useSearchPageSetup) and Search-internal (handleSearch) effects
-// fire for the same query. Cleared when the request completes.
-const inFlightSearchRequests = new Set<string>();
+type InFlightSearchRequest = {
+    promise: Promise<number | string | undefined>;
+    shouldCalculateTotals: boolean;
+};
+
+// Tracks in-flight search requests by hash+offset to prevent duplicate API calls when both page-level
+// and Search-internal effects fire. A totals request can still follow a no-totals request for the same key.
+const inFlightSearchRequests = new Map<string, InFlightSearchRequest>();
 
 let shouldPreventSearchAPI = false;
 function handlePreventSearchAPI(hash: number | undefined) {
@@ -937,16 +941,32 @@ function search({
      * optimistic write data.
      */
     skipWaitForWrites?: boolean;
-}) {
+}): Promise<number | string | undefined> | undefined {
     if (isLoading || shouldPreventSearchAPI) {
         return;
     }
 
     const dedupeKey = `${queryJSON.hash}_${offset ?? 0}`;
-    if (inFlightSearchRequests.has(dedupeKey)) {
-        return;
+    const inFlightRequest = inFlightSearchRequests.get(dedupeKey);
+    if (inFlightRequest) {
+        if (shouldCalculateTotals && !inFlightRequest.shouldCalculateTotals) {
+            const searchWithTotals = () =>
+                search({
+                    queryJSON,
+                    searchKey,
+                    offset,
+                    shouldCalculateTotals,
+                    prevReportsLength,
+                    isOffline,
+                    isLoading: false,
+                    shouldUpdateLastSearchParams,
+                    skipWaitForWrites,
+                });
+            return inFlightRequest.promise.then(searchWithTotals, searchWithTotals);
+        }
+
+        return inFlightRequest.promise;
     }
-    inFlightSearchRequests.add(dedupeKey);
 
     const {optimisticData, successData, finallyData, failureData} = getOnyxLoadingData(queryJSON.hash, queryJSON, offset, isOffline, true, shouldCalculateTotals);
     const {flatFilters, limit, ...queryJSONWithoutFlatFilters} = queryJSON;
@@ -1020,16 +1040,19 @@ function search({
                 // this still rejects for any caller relying on that.
                 Onyx.update(failureData ?? []);
                 throw error;
-            })
-            .finally(() => {
-                inFlightSearchRequests.delete(dedupeKey);
             });
 
-    if (skipWaitForWrites) {
-        return startRequest();
-    }
+    const requestPromise = skipWaitForWrites ? startRequest() : waitForWrites(READ_COMMANDS.SEARCH).then(startRequest);
+    inFlightSearchRequests.set(dedupeKey, {promise: requestPromise, shouldCalculateTotals});
 
-    return waitForWrites(READ_COMMANDS.SEARCH).then(startRequest);
+    const removeInFlightRequest = () => {
+        if (inFlightSearchRequests.get(dedupeKey)?.promise === requestPromise) {
+            inFlightSearchRequests.delete(dedupeKey);
+        }
+    };
+    void requestPromise.then(removeInFlightRequest, removeInFlightRequest);
+
+    return requestPromise;
 }
 
 function submitMoneyRequestOnSearch(

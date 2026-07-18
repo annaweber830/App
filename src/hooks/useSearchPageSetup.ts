@@ -9,7 +9,7 @@ import {isSearchDataLoaded} from '@libs/SearchUIUtils';
 import CONST from '@src/CONST';
 
 import {useFocusEffect} from '@react-navigation/native';
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
 import useNetwork from './useNetwork';
 import usePrevious from './usePrevious';
@@ -35,11 +35,14 @@ function useSearchPageSetup(queryJSON: Readonly<SearchQueryJSON> | undefined) {
 
     const hash = queryJSON?.hash;
     const shouldCalculateTotals = useSearchShouldCalculateTotals(currentSearchKey, hash, true);
+    const totalsSearchAttemptedHashesRef = useRef(new Set<number>());
 
     // Derived primitives so effects do not depend on the whole snapshot object (new reference every
     // Onyx merge) while exhaustive-deps still sees every transition that matters for firing search().
     const isSnapshotDataLoaded = queryJSON ? isSearchDataLoaded(currentSearchResults, queryJSON) : false;
     const isSnapshotSearchLoading = !!currentSearchResults?.search?.isLoading;
+    const isSnapshotTotalsMissing = currentSearchResults?.search?.count === null || currentSearchResults?.search?.count === undefined;
+    const hasSnapshotErrors = currentSearchResults?.errors != null;
 
     // Clear selected transactions when navigating to a different search query
     function clearOnHashChange() {
@@ -69,12 +72,21 @@ function useSearchPageSetup(queryJSON: Readonly<SearchQueryJSON> | undefined) {
             lastSavedSearchHash = hash;
         }
 
-        if (isSnapshotDataLoaded || isSnapshotSearchLoading) {
+        if (!shouldCalculateTotals || !isSnapshotTotalsMissing) {
+            totalsSearchAttemptedHashesRef.current.delete(hash);
+        }
+
+        const shouldFetchMissingTotals = shouldCalculateTotals && isSnapshotTotalsMissing && !hasSnapshotErrors && !totalsSearchAttemptedHashesRef.current.has(hash);
+        if ((isSnapshotDataLoaded && !shouldFetchMissingTotals) || isSnapshotSearchLoading) {
             return;
+        }
+
+        if (shouldCalculateTotals) {
+            totalsSearchAttemptedHashesRef.current.add(hash);
         }
         const shouldSkipWaitForWrites = hasDeferredWrite(CONST.DEFERRED_LAYOUT_WRITE_KEYS.SEARCH);
         search({queryJSON, searchKey: currentSearchKey, offset: 0, shouldCalculateTotals, isLoading: false, skipWaitForWrites: shouldSkipWaitForWrites});
-    }, [hash, isOffline, shouldUseLiveData, queryJSON, isSnapshotDataLoaded, isSnapshotSearchLoading, currentSearchKey, shouldCalculateTotals]);
+    }, [hash, isOffline, shouldUseLiveData, queryJSON, isSnapshotDataLoaded, isSnapshotSearchLoading, isSnapshotTotalsMissing, hasSnapshotErrors, currentSearchKey, shouldCalculateTotals]);
 
     useFocusEffect(() => {
         openSearch();

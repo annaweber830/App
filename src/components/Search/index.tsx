@@ -390,7 +390,8 @@ function Search({
         }
 
         if (searchResults?.search?.isLoading) {
-            if (validGroupBy || (shouldCalculateTotals && searchResults?.search?.count === undefined)) {
+            const isTotalsMissing = searchResults?.search?.count === null || searchResults?.search?.count === undefined;
+            if (validGroupBy || (shouldCalculateTotals && isTotalsMissing)) {
                 shouldRetrySearchWithTotalsOrGroupedRef.current = true;
             }
             return;
@@ -420,7 +421,8 @@ function Search({
 
         // If count is already present, the latest response already contains totals and we can skip the re-query.
         // If we show grouped values we want to retry search either way, the data may be outdated e.g. after deleting an expense.
-        if (!validGroupBy && searchResults?.search?.count !== undefined) {
+        const isTotalsMissing = searchResults?.search?.count === null || searchResults?.search?.count === undefined;
+        if (!validGroupBy && !isTotalsMissing) {
             shouldRetrySearchWithTotalsOrGroupedRef.current = false;
             return;
         }

@@ -114,6 +114,33 @@ describe('search loading totals handling', () => {
         expect(loadingSearchData?.currency).toBeUndefined();
     });
 
+    it('queues a totals request when a no-totals request for the same query is already in flight', async () => {
+        const queryJSON = getQueryJSON();
+
+        const requestWithoutTotals = search({
+            queryJSON,
+            searchKey: CONST.SEARCH.SEARCH_KEYS.EXPENSES,
+            offset: 0,
+            shouldCalculateTotals: false,
+            isLoading: false,
+        });
+        const requestWithTotals = search({
+            queryJSON,
+            searchKey: CONST.SEARCH.SEARCH_KEYS.EXPENSES,
+            offset: 0,
+            shouldCalculateTotals: true,
+            isLoading: false,
+        });
+
+        await Promise.all([requestWithoutTotals, requestWithTotals]);
+
+        expect(makeRequestWithSideEffects).toHaveBeenCalledTimes(2);
+        const loadingSearchData = getSearchLoadingUpdateForHash(queryJSON.hash);
+        expect(loadingSearchData?.count).toBeUndefined();
+        expect(loadingSearchData?.total).toBeUndefined();
+        expect(loadingSearchData?.currency).toBeUndefined();
+    });
+
     it('does not clear totals for paginated loads even when totals are not requested', async () => {
         const queryJSON = getQueryJSON();
 
