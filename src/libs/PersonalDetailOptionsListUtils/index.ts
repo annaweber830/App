@@ -374,11 +374,14 @@ function getValidOptions(
         const filteringFunction = (option: OptionData) => {
             const searchTermsFound = matchesSearchTerms(option, searchTerms);
 
-            if (!searchTermsFound || !option.reportID) {
+            // A loginless recent (e.g. a 1:1 report whose participant's secondary login was removed) keeps a reportID
+            // but has no usable login. It cannot produce a valid user action and selecting it builds a malformed route,
+            // so exclude it here just like the Contacts filter below rejects login-less personal details.
+            if (!searchTermsFound || !option.reportID || !option.login) {
                 return false;
             }
 
-            if (!!option.login && loginsToExcludeFromSuggestions[option.login]) {
+            if (loginsToExcludeFromSuggestions[option.login]) {
                 return false;
             }
 

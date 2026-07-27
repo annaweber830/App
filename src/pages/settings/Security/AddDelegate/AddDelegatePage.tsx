@@ -48,11 +48,16 @@ function AddDelegatePage() {
     });
 
     const handleSelectRow = (option: OptionData) => {
+        // Defensive guard: a login-less option would build a malformed `delegate//role` route that resolves to Not Found.
+        // This must run before toggleSelection so an invalid row is neither selected nor used for navigation.
+        if (!option.login) {
+            return;
+        }
         // toggleSelection would deselect an already-selected row on re-tap, so only select when it isn't selected yet
         if (!option.isSelected) {
             toggleSelection(option);
         }
-        Navigation.navigate(ROUTES.SETTINGS_DELEGATE_ROLE.getRoute(option.login ?? ''));
+        Navigation.navigate(ROUTES.SETTINGS_DELEGATE_ROLE.getRoute(option.login));
     };
 
     const sectionsList = (() => {
