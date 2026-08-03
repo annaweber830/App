@@ -298,18 +298,16 @@ function EmojiPickerMenu({onEmojiSelected, activeEmoji, ref}: EmojiPickerMenuPro
 
     const scrollToHeader = useCallback(
         (headerIndex: number) => {
-            if (!emojiListRef.current) {
+            const emojiList = emojiListRef.current;
+            if (!emojiList) {
                 return;
             }
 
-            const calculatedOffset = Math.floor(headerIndex / CONST.EMOJI_NUM_PER_ROW) * CONST.EMOJI_PICKER_HEADER_HEIGHT;
             setSelectedHeaderIndex(headerIndex);
             pendingHeaderFocusIndexRef.current = headerIndex;
-            emojiListRef.current?.scrollToOffset({offset: calculatedOffset, animated: true});
             setFocusedIndex(headerIndex);
-            setTimeout(() => {
-                scheduleHeaderFocus(headerIndex);
-            }, CONST.ANIMATED_TRANSITION);
+
+            void emojiList.scrollToIndex({index: headerIndex, animated: true, viewPosition: 0}).then(() => scheduleHeaderFocus(headerIndex));
         },
         [emojiListRef, setFocusedIndex, scheduleHeaderFocus],
     );
