@@ -32,7 +32,14 @@ const convertImageWithManipulator = (
     const imageManipulatorContext = ImageManipulator.manipulate(sourceUri);
     imageManipulatorContext
         .renderAsync()
-        .then((manipulatedImage) => manipulatedImage.saveAsync({format: SaveFormat.JPEG}))
+        .then((manipulatedImage) =>
+            manipulatedImage
+                .saveAsync({format: SaveFormat.JPEG})
+                // Release the rendered native image as soon as the JPEG is saved instead of waiting for JS
+                // garbage collection — with a large batch, deferred collection lets decoded images accumulate
+                // in native memory between conversions.
+                .finally(() => manipulatedImage.release()),
+        )
         .then((manipulationResult) => {
             const convertedFile = {
                 uri: manipulationResult.uri,
@@ -49,6 +56,9 @@ const convertImageWithManipulator = (
             onError(err, file);
         })
         .finally(() => {
+            // Same reasoning: free the manipulator context deterministically once this file is done,
+            // whether the conversion succeeded or failed.
+            imageManipulatorContext.release();
             onFinish();
         });
 };
