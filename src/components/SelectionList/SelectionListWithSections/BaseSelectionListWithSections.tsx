@@ -200,11 +200,24 @@ function BaseSelectionListWithSectionsImpl({
 
     const syncedSearchValue = searchValueForFocusSync ?? textInputOptions?.value;
 
+    // Plain Enter belongs to row selection only while the user is keyboard-navigating or a non-empty search has
+    // established a focused result. Otherwise the list has no visible keyboard target, so Enter is left to the
+    // footer's pressOnEnter action (e.g. the Next button on the invite page).
+    const shouldSelectFocusedItemOnEnter = isKeyboardNavigating || !!syncedSearchValue?.trim();
+
+    const submitFocusedItem = () => {
+        if (!shouldSelectFocusedItemOnEnter) {
+            return;
+        }
+        selectFocusedItem();
+    };
+
     useSelectionListShortcuts({
         selectFocusedItem,
         getFocusedOption: getFocusedItem,
         confirmButtonOptions,
         isActive: isScreenFocused,
+        isEnterActive: shouldSelectFocusedItemOnEnter,
         focusedIndex,
         disableKeyboardShortcuts,
         shouldStopPropagation,
@@ -244,7 +257,7 @@ function BaseSelectionListWithSectionsImpl({
                 onKeyPress={textInputKeyPress}
                 accessibilityLabel={textInputOptions?.label}
                 options={textInputOptions}
-                onSubmit={selectFocusedItem}
+                onSubmit={submitFocusedItem}
                 dataLength={itemsCount}
                 isLoading={isLoadingNewOptions}
                 onFocusChange={(v: boolean) => (isTextInputFocusedRef.current = v)}

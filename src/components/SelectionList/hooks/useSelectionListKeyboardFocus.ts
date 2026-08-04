@@ -66,6 +66,24 @@ function useSelectionListKeyboardFocus({
         return () => removeKeyDownPressListener(handleTabKeyDown);
     }, [setHasKeyBeenPressed]);
 
+    // Pointer use exits keyboard-navigation mode so the flag always reflects the user's current input modality.
+    // A capture-phase pointerdown can never come from keyboard or accessibility activation, and resetting the ref
+    // re-arms setHasKeyBeenPressed so a later Tab/arrow press flips the flag back on.
+    useEffect(() => {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const handlePointerDown = () => {
+            if (!hasKeyBeenPressed.current) {
+                return;
+            }
+            hasKeyBeenPressed.current = false;
+            setIsKeyboardNavigating(false);
+        };
+        document.addEventListener('pointerdown', handlePointerDown, {capture: true});
+        return () => document.removeEventListener('pointerdown', handlePointerDown, {capture: true});
+    }, []);
+
     const [focusedIndex, setFocusedIndex] = useArrowKeyFocusManager({
         initialFocusedIndex,
         maxIndex,

@@ -10,6 +10,8 @@ type UseSelectionListShortcutsParams<TItem extends ListItem> = {
     getFocusedOption: () => TItem | undefined;
     confirmButtonOptions: ConfirmButtonOptions<TItem> | undefined;
     isActive: boolean;
+    /** Whether plain Enter should select the focused row. Defaults to true; CTRL+Enter is not affected. */
+    isEnterActive?: boolean;
     focusedIndex: number;
     disableKeyboardShortcuts: boolean;
     shouldStopPropagation: boolean | undefined;
@@ -22,6 +24,7 @@ function useSelectionListShortcuts<TItem extends ListItem>({
     getFocusedOption,
     confirmButtonOptions,
     isActive,
+    isEnterActive = true,
     focusedIndex,
     disableKeyboardShortcuts,
     shouldStopPropagation,
@@ -34,7 +37,7 @@ function useSelectionListShortcuts<TItem extends ListItem>({
         captureOnInputs: true,
         shouldBubble,
         shouldStopPropagation,
-        isActive: !disableKeyboardShortcuts && isActive && focusedIndex >= 0 && !disableEnterShortcut,
+        isActive: !disableKeyboardShortcuts && isActive && isEnterActive && focusedIndex >= 0 && !disableEnterShortcut,
     });
 
     useKeyboardShortcut(
