@@ -15,6 +15,7 @@ import type {PressableStateCallbackType} from 'react-native';
 import React from 'react';
 import {View} from 'react-native';
 
+import type PressableProps from './Pressable/GenericPressable/types';
 import type {PressableRef} from './Pressable/GenericPressable/types';
 
 import PressableWithoutFeedback from './Pressable/PressableWithoutFeedback';
@@ -30,6 +31,11 @@ type BaseMiniContextMenuItemProps = WithSentryLabel & {
      * Callback to fire on press
      */
     onPress: () => void;
+
+    /**
+     * Callback to fire when a key is pressed while the item is focused
+     */
+    onKeyDown?: PressableProps['onKeyDown'];
 
     /**
      * The children to display within the menu item
@@ -58,6 +64,7 @@ type BaseMiniContextMenuItemProps = WithSentryLabel & {
 function BaseMiniContextMenuItem({
     tooltipText,
     onPress,
+    onKeyDown,
     children,
     isDelayButtonStateComplete = true,
     shouldPreventDefaultFocusOnPress = true,
@@ -74,6 +81,7 @@ function BaseMiniContextMenuItem({
             <PressableWithoutFeedback
                 ref={ref}
                 onPress={onPress}
+                onKeyDown={onKeyDown}
                 onMouseDown={(event) => {
                     if (!ReportActionComposeFocusManager.isFocused() && !ReportActionComposeFocusManager.isEditFocused()) {
                         const activeElement = DomUtils.getActiveElement();

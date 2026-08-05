@@ -46,7 +46,11 @@ function MiniQuickEmojiReactions({reportAction, reportActionID, onEmojiSelected,
     const icons = useMemoizedLazyExpensifyIcons(['AddReaction']);
     const styles = useThemeStyles();
     const StyleUtils = useStyleUtils();
-    const ref = useRef<View>(null);
+    const firstReactionRef = useRef<View | HTMLDivElement>(null);
+    const secondReactionRef = useRef<View | HTMLDivElement>(null);
+    const thirdReactionRef = useRef<View | HTMLDivElement>(null);
+    const addReactionRef = useRef<View | HTMLDivElement>(null);
+    const reactionRefs = [firstReactionRef, secondReactionRef, thirdReactionRef, addReactionRef];
     const {translate, preferredLocale} = useLocalize();
     const [preferredSkinTone = CONST.EMOJI_DEFAULT_SKIN_TONE] = useOnyx(ONYXKEYS.PREFERRED_EMOJI_SKIN_TONE);
     const [emojiReactions = getEmptyObject<ReportActionReactions>()] = useOnyx(`${ONYXKEYS.COLLECTION.REPORT_ACTIONS_REACTIONS}${reportActionID}`);
@@ -65,19 +69,36 @@ function MiniQuickEmojiReactions({reportAction, reportActionID, onEmojiSelected,
             onEmojiSelected: (_emojiCode, emojiObject, skinTone) => {
                 selectEmojiWithReaction(emojiObject, skinTone);
             },
-            emojiPopoverAnchor: ref,
+            emojiPopoverAnchor: addReactionRef,
             id: reportAction.reportActionID,
         });
     };
 
+    const moveFocusWithArrowKey = (event: React.KeyboardEvent, currentIndex: number) => {
+        const isPreviousKey = event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_LEFT.shortcutKey || event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_UP.shortcutKey;
+        const isNextKey = event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_RIGHT.shortcutKey || event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_DOWN.shortcutKey;
+
+        if (!isPreviousKey && !isNextKey) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const nextIndex = isPreviousKey ? (currentIndex - 1 + reactionRefs.length) % reactionRefs.length : (currentIndex + 1) % reactionRefs.length;
+        reactionRefs.at(nextIndex)?.current?.focus();
+    };
+
     return (
         <View style={styles.flexRow}>
-            {CONST.QUICK_REACTIONS.slice(0, 3).map((emoji: Emoji) => (
+            {CONST.QUICK_REACTIONS.slice(0, 3).map((emoji: Emoji, index) => (
                 <BaseMiniContextMenuItem
                     key={emoji.name}
+                    ref={reactionRefs.at(index)}
                     isDelayButtonStateComplete={false}
                     tooltipText={`:${getLocalizedEmojiName(emoji.name, preferredLocale)}:`}
                     onPress={callFunctionIfActionIsAllowed(() => onEmojiSelected(emoji, emojiReactions, preferredSkinTone))}
+                    onKeyDown={(event) => moveFocusWithArrowKey(event as React.KeyboardEvent, index)}
                     sentryLabel={CONST.SENTRY_LABEL.MINI_CONTEXT_MENU.QUICK_REACTION}
                 >
                     <Text
@@ -89,7 +110,7 @@ function MiniQuickEmojiReactions({reportAction, reportActionID, onEmojiSelected,
                 </BaseMiniContextMenuItem>
             ))}
             <BaseMiniContextMenuItem
-                ref={ref}
+                ref={addReactionRef}
                 onPress={callFunctionIfActionIsAllowed(() => {
                     if (!emojiPickerRef.current?.isEmojiPickerVisible) {
                         openEmojiPicker();
@@ -97,6 +118,7 @@ function MiniQuickEmojiReactions({reportAction, reportActionID, onEmojiSelected,
                         emojiPickerRef.current?.hideEmojiPicker();
                     }
                 })}
+                onKeyDown={(event) => moveFocusWithArrowKey(event as React.KeyboardEvent, reactionRefs.length - 1)}
                 isDelayButtonStateComplete={false}
                 tooltipText={translate('emojiReactions.addReactionTooltip')}
                 sentryLabel={CONST.SENTRY_LABEL.MINI_CONTEXT_MENU.EMOJI_PICKER_BUTTON}
