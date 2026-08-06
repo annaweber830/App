@@ -943,6 +943,7 @@ function updateMoneyRequestTaxRate({
 
 type UpdateMoneyRequestDistanceParams = {
     transaction: OnyxEntry<OnyxTypes.Transaction>;
+    currentTransactionViolations: OnyxEntry<OnyxTypes.TransactionViolations>;
     transactionThreadReport: OnyxEntry<OnyxTypes.Report>;
     parentReport: OnyxEntry<OnyxTypes.Report>;
     iouReportOwnerLogin: string | undefined;
@@ -971,6 +972,7 @@ type UpdateMoneyRequestDistanceParams = {
 /** Updates the waypoints of a distance expense */
 function updateMoneyRequestDistance({
     transaction,
+    currentTransactionViolations,
     transactionThreadReport,
     parentReport,
     iouReportOwnerLogin,
@@ -1019,7 +1021,7 @@ function updateMoneyRequestDistance({
             undefined,
             undefined,
             distanceOriginalPolicy,
-            undefined,
+            currentTransactionViolations,
             {personalPolicyOutputCurrency, getCurrencyDecimals, getCurrencySymbol},
         );
     } else {
@@ -1037,6 +1039,7 @@ function updateMoneyRequestDistance({
             currentUserEmailParam,
             isASAPSubmitBetaEnabled,
             delegateAccountID,
+            violations: currentTransactionViolations,
             isTrackIntentUser,
             personalPolicyOutputCurrency,
             getCurrencyDecimals,
@@ -1975,6 +1978,9 @@ function getUpdateMoneyRequestParams(params: GetUpdateMoneyRequestParamsType): U
     const hasModifiedDate = 'date' in transactionChanges;
     const hasModifiedDistance = 'distance' in transactionChanges;
     const hasModifiedAttendees = 'attendees' in transactionChanges;
+    const originalRateID = transaction?.comment?.customUnit?.customUnitRateID;
+    const updatedRateID = updatedTransaction?.comment?.customUnit?.customUnitRateID;
+    const shouldPreserveUnchangedDisabledDistanceRate = (hasModifiedDistance || hasPendingWaypoints) && !!originalRateID && originalRateID === updatedRateID;
 
     const isInvoice = isInvoiceReportReportUtils(iouReport);
     if (
@@ -2041,6 +2047,7 @@ function getUpdateMoneyRequestParams(params: GetUpdateMoneyRequestParamsType): U
             ownerLogin: iouReportOwnerLogin,
             isFromExpenseReport,
             distanceOriginalPolicy,
+            shouldPreserveUnchangedDisabledDistanceRate,
         });
         optimisticData.push(violationsOnyxData);
         failureData.push({

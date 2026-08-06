@@ -468,6 +468,7 @@ const ViolationsUtils = {
         isFromExpenseReport,
         shouldRemoveRejectedExpenseViolation,
         distanceOriginalPolicy,
+        shouldPreserveUnchangedDisabledDistanceRate = false,
         ownerLogin: ownerLoginParam,
     }: {
         updatedTransaction: Transaction;
@@ -482,6 +483,7 @@ const ViolationsUtils = {
         isFromExpenseReport?: boolean;
         shouldRemoveRejectedExpenseViolation?: boolean;
         distanceOriginalPolicy?: OnyxEntry<Policy>;
+        shouldPreserveUnchangedDisabledDistanceRate?: boolean;
         ownerLogin: string | undefined;
     }): OnyxUpdate<typeof ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS> {
         const isScanning = TransactionUtils.isScanning(updatedTransaction);
@@ -663,6 +665,15 @@ const ViolationsUtils = {
                 const customRate = isPerDiem ? getPerDiemRateCustomUnitRate(policy, customUnitRateID) : getDistanceRateCustomUnitRate(policyForCustomUnitRate, customUnitRateID);
                 if (customRate && customRate.enabled !== false) {
                     newTransactionViolations = reject(newTransactionViolations, {name: CONST.VIOLATIONS.CUSTOM_UNIT_OUT_OF_POLICY});
+                    newTransactionViolations = syncCustomUnitRateOutOfDateRangeViolation(newTransactionViolations, updatedTransaction, policyForCustomUnitRate);
+                } else if (
+                    shouldPreserveUnchangedDisabledDistanceRate &&
+                    isDistanceRequestForCustomUnit &&
+                    !isPerDiem &&
+                    !isSelfDM &&
+                    customRate?.enabled === false &&
+                    customRate.pendingAction !== CONST.RED_BRICK_ROAD_PENDING_ACTION.DELETE
+                ) {
                     newTransactionViolations = syncCustomUnitRateOutOfDateRangeViolation(newTransactionViolations, updatedTransaction, policyForCustomUnitRate);
                 } else if (isSelfDM && isDistanceRequestForCustomUnit) {
                     newTransactionViolations = reject(newTransactionViolations, {name: CONST.VIOLATIONS.CUSTOM_UNIT_RATE_OUT_OF_DATE_RANGE});

@@ -103,6 +103,7 @@ function IOURequestStepDistance({
     const [reportPolicyTags] = useOnyx(`${ONYXKEYS.COLLECTION.POLICY_TAGS}${getNonEmptyStringOnyxID(parentReport?.policyID)}`);
 
     const [transactionBackup] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION_BACKUP}${transactionID}`);
+    const [currentTransactionViolations] = useOnyx(`${ONYXKEYS.COLLECTION.TRANSACTION_VIOLATIONS}${getNonEmptyStringOnyxID(transaction?.transactionID)}`);
     const [splitDraftTransaction] = useOnyx(`${ONYXKEYS.COLLECTION.SPLIT_TRANSACTION_DRAFT}${transactionID}`);
     const [originalSplitTransactionDraft] = useOnyx(`${ONYXKEYS.COLLECTION.SPLIT_TRANSACTION_DRAFT}${CONST.IOU.OPTIMISTIC_TRANSACTION_ID}`);
     const selfDMReport = useSelfDMReport();
@@ -515,6 +516,7 @@ function IOURequestStepDistance({
             if (transaction?.transactionID && report?.reportID) {
                 updateMoneyRequestDistance({
                     transaction,
+                    currentTransactionViolations,
                     transactionThreadReport: report,
                     parentReport,
                     iouReportOwnerLogin,
@@ -564,6 +566,7 @@ function IOURequestStepDistance({
         transactionBackup,
         waypoints,
         transaction,
+        currentTransactionViolations,
         report,
         currentTransaction?.comment?.waypoints,
         currentTransaction?.routes,
@@ -645,6 +648,7 @@ function IOURequestStepDistance({
         const hasRouteChanged = haveWaypointsChanged && !deepEqual(transactionBackup?.routes, transaction?.routes);
         updateMoneyRequestDistance({
             transaction,
+            currentTransactionViolations,
             transactionThreadReport: report,
             parentReport,
             iouReportOwnerLogin,
@@ -681,6 +685,7 @@ function IOURequestStepDistance({
         distanceUnit,
         isEditingSplit,
         transaction,
+        currentTransactionViolations,
         currentTransaction?.comment?.customUnit?.distanceUnit,
         splitDraftTransaction,
         policy,
