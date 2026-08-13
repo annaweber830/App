@@ -12,6 +12,7 @@ import useThemeStyles from '@hooks/useThemeStyles';
 
 import {getLocalizedEmojiName, getPreferredEmojiCode} from '@libs/EmojiUtils';
 import getButtonState from '@libs/getButtonState';
+import getHadTabNavigation from '@libs/hadTabNavigation';
 
 import variables from '@styles/variables';
 
@@ -78,7 +79,7 @@ function MiniQuickEmojiReactions({reportAction, reportActionID, onEmojiSelected,
         const isPreviousKey = event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_LEFT.shortcutKey || event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_UP.shortcutKey;
         const isNextKey = event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_RIGHT.shortcutKey || event.key === CONST.KEYBOARD_SHORTCUTS.ARROW_DOWN.shortcutKey;
 
-        if (!isPreviousKey && !isNextKey) {
+        if ((!isPreviousKey && !isNextKey) || !getHadTabNavigation()) {
             return;
         }
 
@@ -98,7 +99,7 @@ function MiniQuickEmojiReactions({reportAction, reportActionID, onEmojiSelected,
                     isDelayButtonStateComplete={false}
                     tooltipText={`:${getLocalizedEmojiName(emoji.name, preferredLocale)}:`}
                     onPress={callFunctionIfActionIsAllowed(() => onEmojiSelected(emoji, emojiReactions, preferredSkinTone))}
-                    onKeyDown={(event) => moveFocusWithArrowKey(event as React.KeyboardEvent, index)}
+                    onKeyDown={(event) => moveFocusWithArrowKey(event, index)}
                     sentryLabel={CONST.SENTRY_LABEL.MINI_CONTEXT_MENU.QUICK_REACTION}
                 >
                     <Text
@@ -118,7 +119,7 @@ function MiniQuickEmojiReactions({reportAction, reportActionID, onEmojiSelected,
                         emojiPickerRef.current?.hideEmojiPicker();
                     }
                 })}
-                onKeyDown={(event) => moveFocusWithArrowKey(event as React.KeyboardEvent, reactionRefs.length - 1)}
+                onKeyDown={(event) => moveFocusWithArrowKey(event, reactionRefs.length - 1)}
                 isDelayButtonStateComplete={false}
                 tooltipText={translate('emojiReactions.addReactionTooltip')}
                 sentryLabel={CONST.SENTRY_LABEL.MINI_CONTEXT_MENU.EMOJI_PICKER_BUTTON}
